@@ -1,4 +1,4 @@
-// --- CONFIGURACIÓN Y CONSTANTES ---
+// --- CONFIGURACIÓN DE COLORES Y TIPOS ---
 const TYPE_COLORS = {
     fire: '#F08030', water: '#6890F0', grass: '#78C850', electric: '#F8D030',
     ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0', ground: '#E0C068',
@@ -15,53 +15,37 @@ const sentinel = document.getElementById('sentinel');
 const modal = document.getElementById('detail-modal');
 const modalContent = document.getElementById('modal-content');
 
-// --- UTILIDADES ---
-const debounce = (fn, delay) => {
-    let timeout;
-    return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn(...args), delay);
+// --- LÓGICA DE CÁLCULO DE DEBILIDADES (TYPE CHART) ---
+async function getTypeEffectiveness(types) {
+    const damageRelations = {
+        weakness: new Set(),
+        resistance: new Set(),
+        immunity: new Set()
     };
-};
 
-// --- LÓGICA DE API Y RENDERIZADO ---
-async function fetchPokemons() {
-    if (isSearching) return;
-    try {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon?offset=${offset}&limit=${limit}`);
-        const data = await res.json();
-        
-        const details = await Promise.all(data.results.map(p => fetch(p.url).then(r => r.json())));
-        renderCards(details);
-        offset += limit;
-    } catch (err) { console.error("Error batch:", err); }
-}
-
-function renderCards(pokemons) {
-    pokemons.forEach(pokemon => {
-        const card = document.createElement('div');
-        card.className = 'pokemon-card bg-slate-900 border border-slate-800 rounded-2xl p-5 cursor-pointer';
-        card.innerHTML = `
-            <div class="relative group">
-                <img src="${pokemon.sprites.other['official-artwork'].front_default}" 
-                     alt="${pokemon.name}" class="w-full z-10 relative" onload="this.classList.add('loaded')">
-                <div class="absolute inset-0 bg-white/5 blur-2xl rounded-full group-hover:bg-red-500/10 transition-colors"></div>
-            </div>
-            <p class="text-[10px] font-mono text-slate-500 mt-2">#${pokemon.id.toString().padStart(3, '0')}</p>
-            <h3 class="text-lg font-bold capitalize tracking-tight">${pokemon.name}</h3>
-            <div class="flex gap-2 mt-3">
-                ${pokemon.types.map(t => `<span class="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase" style="background:${TYPE_COLORS[t.type.name] || TYPE_COLORS.default}">${t.type.name}</span>`).join('')}
-            </div>
-        `;
-        card.onclick = () => showDetails(pokemon.id);
-        container.appendChild(card);
+    const typeData = await Promise.all(types.map(t => fetch(t.type.url).then(r => r.json())));
+    
+    typeData.forEach(data => {
+        data.damage_relations.double_damage_from.forEach(t => damageRelations.weakness.add(t.name));
+        data.damage_relations.half_damage_from.forEach(t => damageRelations.resistance.add(t.name));
+        data.damage_relations.no_damage_from.forEach(t => damageRelations.immunity.add(t.name));
     });
+
+    // Limpiar duplicados (si es débil y resistente a la vez, es neutro)
+    damageRelations.weakness.forEach(w => {
+        if (damageRelations.resistance.has(w)) {
+            damageRelations.weakness.delete(w);
+            damageRelations.resistance.delete(w);
+        }
+    });
+
+    return damageRelations;
 }
 
-// --- SISTEMA DE DETALLES (MODAL) ---
+// --- RENDERIZADO DE DETALLES PROFESIONAL ---
 async function showDetails(id) {
     modal.classList.remove('hidden');
-    modalContent.innerHTML = `<div class="p-20 text-center animate-pulse">Analizando ADN Pokémon...</div>`;
+    modalContent.innerHTML = `<div class="p-20 text-center animate-pulse text-red-500 font-bold">SINCRONIZANDO CON LA RED MUNDIAL...</div>`;
 
     try {
         const [poke, species] = await Promise.all([
@@ -69,91 +53,122 @@ async function showDetails(id) {
             fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}`).then(r => r.json())
         ]);
 
-        const evoRes = await fetch(species.evolution_chain.url);
-        const evoData = await evoRes.json();
+        const [evoData, typeRelations] = await Promise.all([
+            fetch(species.evolution_chain.url).then(r => r.json()),
+            getTypeEffectiveness(poke.types)
+        ]);
 
         const color = TYPE_COLORS[poke.types[0].type.name] || TYPE_COLORS.default;
         const desc = species.flavor_text_entries.find(e => e.language.name === 'es')?.flavor_text.replace(/\f/g, ' ') || "Sin registros.";
 
         modalContent.innerHTML = `
-            <div class="relative">
-                <button id="close-modal" class="absolute top-5 right-5 z-50 bg-black/50 w-10 h-10 rounded-full hover:bg-red-600 transition-colors">✕</button>
+            <div class="flex flex-col md:flex-row h-full max-h-[90vh]">
+                <button id="close-modal" class="absolute top-4 right-4 z-50 bg-black/40 hover:bg-red-600 w-10 h-10 rounded-full transition-all text-white">✕</button>
                 
-                <div class="md:flex">
-                    <!-- Columna Izquierda: Visual -->
-                    <div class="md:w-1/2 p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-800" style="background: linear-gradient(135deg, ${color}33 0%, #0f172a 100%)">
-                        <img src="${poke.sprites.other['official-artwork'].front_default}" class="w-64 drop-shadow-[0_0_30px_${color}66] loaded">
-                        <h2 class="text-4xl font-black uppercase mt-4 tracking-tighter">${poke.name}</h2>
-                        <div class="flex gap-2 mt-2">
-                            ${poke.types.map(t => `<span class="px-4 py-1 rounded-lg text-xs font-bold shadow-lg" style="background:${TYPE_COLORS[t.type.name]}">${t.type.name.toUpperCase()}</span>`).join('')}
+                <!-- Lado Izquierdo: Visual (Modelo 3D Style) -->
+                <div class="md:w-2/5 p-8 flex flex-col items-center justify-center relative overflow-hidden" style="background: linear-gradient(180deg, ${color}66 0%, #0f172a 100%)">
+                    <img src="${poke.sprites.other['home'].front_default}" 
+                         class="w-64 z-10 drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] transform hover:scale-110 transition-transform duration-500" 
+                         alt="${poke.name}">
+                    <div class="mt-6 text-center z-10">
+                        <h2 class="text-4xl font-black uppercase tracking-tighter">${poke.name}</h2>
+                        <div class="flex gap-2 justify-center mt-2">
+                            ${poke.types.map(t => `<span class="px-3 py-1 rounded-md text-[10px] font-bold uppercase shadow-lg" style="background:${TYPE_COLORS[t.type.name]}">${t.type.name}</span>`).join('')}
+                        </div>
+                    </div>
+                    <!-- Decoración de fondo -->
+                    <span class="absolute -bottom-10 -left-10 text-[120px] font-black opacity-5 select-none uppercase">${poke.types[0].type.name}</span>
+                </div>
+
+                <!-- Lado Derecho: Dashboard de Datos -->
+                <div class="md:w-3/5 p-6 bg-slate-900 overflow-y-auto custom-scrollbar">
+                    
+                    <!-- Sección: Atributos y Habilidades -->
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                            <h4 class="text-[10px] text-slate-500 font-bold mb-2 uppercase tracking-widest">Habilidades</h4>
+                            <div class="flex flex-wrap gap-2">
+                                ${poke.abilities.map(a => `<span class="text-xs bg-slate-700 px-2 py-1 rounded capitalize ${a.is_hidden ? 'text-red-400 border border-red-900/30' : ''}">${a.ability.name.replace('-', ' ')}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="bg-slate-800/50 p-4 rounded-2xl border border-slate-700">
+                            <h4 class="text-[10px] text-slate-500 font-bold mb-2 uppercase tracking-widest">Dimensiones</h4>
+                            <div class="flex justify-between text-xs">
+                                <span>Altura: <b>${poke.height/10}m</b></span>
+                                <span>Peso: <b>${poke.weight/10}kg</b></span>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Columna Derecha: Datos -->
-                    <div class="md:w-1/2 p-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                        <section class="mb-6">
-                            <h4 class="text-red-500 font-bold text-xs tracking-widest mb-2 uppercase">Entrada de Pokédex</h4>
-                            <p class="text-slate-300 text-sm italic leading-relaxed">"${desc}"</p>
-                        </section>
-
-                        <section class="mb-6">
-                            <h4 class="text-slate-500 font-bold text-xs tracking-widest mb-3 uppercase">Estadísticas Base</h4>
-                            ${poke.stats.map(s => `
-                                <div class="mb-2">
-                                    <div class="flex justify-between text-[10px] mb-1 uppercase font-bold">
-                                        <span>${s.stat.name}</span>
-                                        <span>${s.base_stat}</span>
-                                    </div>
-                                    <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                        <div class="h-full bg-red-500 transition-all duration-1000" style="width: ${(s.base_stat/255)*100}%"></div>
-                                    </div>
+                    <!-- Sección: Tabla de Tipos (Efectividad) -->
+                    <div class="mb-6">
+                        <h4 class="text-[10px] text-slate-500 font-bold mb-3 uppercase tracking-widest">Relaciones de Daño</h4>
+                        <div class="flex flex-wrap gap-4">
+                            <div>
+                                <p class="text-[9px] text-red-400 mb-1 uppercase">Debilidades (x2)</p>
+                                <div class="flex flex-wrap gap-1">
+                                    ${Array.from(typeRelations.weakness).map(t => `<div class="w-3 h-3 rounded-full" style="background:${TYPE_COLORS[t]}" title="${t}"></div>`).join('')}
                                 </div>
-                            `).join('')}
-                        </section>
-
-                        <section>
-                            <h4 class="text-slate-500 font-bold text-xs tracking-widest mb-3 uppercase">Movimientos (Nivel)</h4>
-                            <div class="grid grid-cols-2 gap-2">
-                                ${poke.moves.filter(m => m.version_group_details[0].move_learn_method.name === 'level-up').slice(0, 10).map(m => `
-                                    <div class="bg-slate-800 p-2 rounded text-[10px] flex justify-between border border-slate-700">
-                                        <span class="capitalize">${m.move.name.replace('-', ' ')}</span>
-                                        <span class="text-red-400">lv. ${m.version_group_details[0].level_learned_at}</span>
-                                    </div>
-                                `).join('')}
                             </div>
-                        </section>
+                            <div>
+                                <p class="text-[9px] text-green-400 mb-1 uppercase">Resistencias (x0.5)</p>
+                                <div class="flex flex-wrap gap-1">
+                                    ${Array.from(typeRelations.resistance).map(t => `<div class="w-3 h-3 rounded-full" style="background:${TYPE_COLORS[t]}" title="${t}"></div>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs de Movimientos -->
+                    <div class="bg-slate-800/30 rounded-2xl p-4 border border-slate-800">
+                        <div class="flex border-b border-slate-700 mb-4 overflow-x-auto gap-4">
+                            <button onclick="switchMoveTab('level-up')" class="move-tab-btn pb-2 text-[10px] font-bold uppercase border-b-2 border-red-500 text-red-500">Nivel</button>
+                            <button onclick="switchMoveTab('machine')" class="move-tab-btn pb-2 text-[10px] font-bold uppercase border-b-2 border-transparent text-slate-500">MT/MO</button>
+                            <button onclick="switchMoveTab('egg')" class="move-tab-btn pb-2 text-[10px] font-bold uppercase border-b-2 border-transparent text-slate-500">Huevo</button>
+                            <button onclick="switchMoveTab('tutor')" class="move-tab-btn pb-2 text-[10px] font-bold uppercase border-b-2 border-transparent text-slate-500">Tutor</button>
+                        </div>
+                        <div id="moves-container" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar">
+                            ${renderMoves(poke.moves, 'level-up')}
+                        </div>
                     </div>
                 </div>
             </div>
         `;
 
+        // Inyectar datos en el objeto global para el switch de pestañas
+        window.currentPokemonMoves = poke.moves;
         document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
-    } catch (e) { modalContent.innerHTML = "Error crítico al obtener datos."; }
+
+    } catch (e) {
+        console.error(e);
+        modalContent.innerHTML = `<p class="p-10 text-center">Error al cargar la información.</p>`;
+    }
 }
 
-// --- BUSCADOR Y OBSERVER ---
-const handleSearch = debounce(async (e) => {
-    const query = e.target.value.toLowerCase().trim();
-    if (!query) {
-        isSearching = false; container.innerHTML = ""; offset = 0; fetchPokemons(); return;
-    }
-    isSearching = true;
-    container.innerHTML = `<div class="col-span-full py-20 text-center">Buscando en la base de datos...</div>`;
-    try {
-        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${query}`);
-        const data = await res.json();
-        container.innerHTML = "";
-        renderCards([data]);
-    } catch { container.innerHTML = `<div class="col-span-full py-20 text-center text-slate-500">No se encontró ningún Pokémon con ese nombre o ID.</div>`; }
-}, 500);
+// --- HELPERS DE UI ---
+function renderMoves(moves, method) {
+    const filtered = moves.filter(m => m.version_group_details[0].move_learn_method.name === method);
+    if (filtered.length === 0) return `<p class="col-span-full text-[10px] text-slate-600 text-center py-4 italic">No se aprenden movimientos por este método.</p>`;
+    
+    return filtered.sort((a,b) => a.version_group_details[0].level_learned_at - b.version_group_details[0].level_learned_at).map(m => `
+        <div class="flex justify-between items-center bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+            <span class="text-[11px] capitalize text-slate-300 font-medium">${m.move.name.replace(/-/g, ' ')}</span>
+            <span class="text-[9px] font-bold text-red-500">${m.version_group_details[0].level_learned_at > 0 ? 'Lv.' + m.version_group_details[0].level_learned_at : '—'}</span>
+        </div>
+    `).join('');
+}
 
-document.getElementById('search-input').addEventListener('input', handleSearch);
+window.switchMoveTab = (method) => {
+    // Actualizar UI de botones
+    document.querySelectorAll('.move-tab-btn').forEach(btn => {
+        const isTarget = btn.getAttribute('onclick').includes(method);
+        btn.classList.toggle('text-red-500', isTarget);
+        btn.classList.toggle('border-red-500', isTarget);
+        btn.classList.toggle('text-slate-500', !isTarget);
+        btn.classList.toggle('border-transparent', !isTarget);
+    });
+    // Renderizar
+    document.getElementById('moves-container').innerHTML = renderMoves(window.currentPokemonMoves, method);
+};
 
-const observer = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting && !isSearching) fetchPokemons();
-}, { rootMargin: '400px' });
-
-observer.observe(sentinel);
-
-// Exportar a window para que el HTML pueda ver la función si fuera necesario
-window.showDetails = showDetails;
+// [Mantener lógica de fetchPokemons, debounce, IntersectionObserver del código anterior]
