@@ -3,35 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokédex Pro | Performance Edition</title>
+    <title>Pokédex Pro | Cross Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="src/css/styles.css">
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
-    <!-- Header & Search -->
-    <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md p-4 shadow-xl">
-        <div class="max-w-5xl mx-auto flex flex-col md:flex-row gap-4 items-center">
-            <h1 class="text-2xl font-bold tracking-tighter text-red-500">POKÉDEX_PRO</h1>
-            <input type="text" id="search-input" 
-                   placeholder="Busca por nombre o ID..." 
-                   class="w-full p-3 rounded-lg bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-red-500 outline-none transition-all">
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
+    
+    <!-- Header Sofisticado -->
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 shadow-2xl">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 items-center">
+            <h1 class="text-2xl font-black tracking-tighter text-red-500 italic">POKÉDEX_PRO</h1>
+            <div class="relative w-full">
+                <input type="text" id="search-input" 
+                       placeholder="Busca por nombre o ID (ej: Jolteon o 135)..." 
+                       class="w-full p-3 pl-10 rounded-xl bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-red-600 outline-none transition-all placeholder:text-slate-500">
+                <span class="absolute left-3 top-3.5 opacity-30">🔍</span>
+            </div>
         </div>
     </header>
 
-    <!-- Main Grid -->
-    <main id="pokemon-container" class="max-w-7xl mx-auto p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        <!-- Las cards se inyectan aquí -->
+    <!-- Contenedor Principal -->
+    <main id="pokemon-container" class="max-w-7xl mx-auto p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+        <!-- Las tarjetas se generan dinámicamente -->
     </main>
 
-    <!-- Infinite Scroll Trigger -->
-    <div id="sentinel" class="h-20 flex justify-center items-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
+    <!-- Indicador de Carga / Infinite Scroll -->
+    <div id="sentinel" class="h-32 flex justify-center items-center">
+        <div class="animate-bounce text-red-500 font-bold tracking-widest">CARGANDO MÁS POKÉMON...</div>
     </div>
 
-    <!-- Modal de Detalles (Oculto por defecto) -->
-    <div id="detail-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-black/90 flex items-center justify-center p-4">
-        <div id="modal-content" class="bg-slate-800 w-full max-w-2xl rounded-2xl overflow-hidden relative">
-            <!-- Contenido dinámico -->
+    <!-- Modal de Detalles -->
+    <div id="detail-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 flex items-center justify-center p-4 sm:p-6">
+        <div id="modal-content" class="bg-slate-900 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-800 relative">
+            <!-- Se llena mediante JS -->
         </div>
     </div>
 
