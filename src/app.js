@@ -1,4 +1,3 @@
-// --- CONFIGURACIÓN DE COLORES (Asegúrate de tenerla) ---
 const TYPE_COLORS = {
     fire: '#F08030', water: '#6890F0', grass: '#78C850', electric: '#F8D030',
     ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0', ground: '#E0C068',
@@ -6,79 +5,98 @@ const TYPE_COLORS = {
     ghost: '#705898', dragon: '#7038F8', steel: '#B8B8D0', fairy: '#EE99AC', default: '#71717a'
 };
 
-async function showDetails(idOrName) {
-    const modal = document.getElementById('detail-modal');
-    const modalContent = document.getElementById('modal-content');
-    modal.classList.remove('hidden');
-    
+let offset = 0;
+const limit = 20;
+let isSearching = false;
+
+const container = document.getElementById('pokemon-container');
+const sentinel = document.getElementById('sentinel');
+const modal = document.getElementById('detail-modal');
+const modalContent = document.getElementById('modal-content');
+
+// --- CARGA INICIAL ---
+async function startApp() {
+    await fetchPokemons(); // Carga los primeros 20
+}
+
+async function fetchPokemons() {
+    if (isSearching) return;
     try {
-        const poke = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrName}`).then(r => r.json());
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon?offset=${offset}&limit=${limit}`);
+        const data = await res.json();
+        const details = await Promise.all(data.results.map(p => fetch(p.url).then(r => r.json())));
+        renderCards(details);
+        offset += limit;
+    } catch (err) { console.error("Error:", err); }
+}
+
+function renderCards(pokemons) {
+    pokemons.forEach(pokemon => {
+        const card = document.createElement('div');
+        card.className = 'bg-slate-900 p-4 rounded-xl cursor-pointer border border-slate-800 hover:border-red-500 transition-all';
+        const img = pokemon.sprites.other['home'].front_default || pokemon.sprites.other['official-artwork'].front_default;
         
-        // Clasificamos movimientos por método de aprendizaje
+        card.innerHTML = `
+            <img src="${img}" class="w-full h-40 object-contain">
+            <h3 class="text-center font-bold capitalize mt-2 text-white">${pokemon.name}</h3>
+        `;
+        card.onclick = () => showDetails(pokemon.id);
+        container.appendChild(card);
+    });
+}
+
+// --- DETALLES (MT, HUEVO Y 3D) ---
+async function showDetails(id) {
+    modal.classList.remove('hidden');
+    modalContent.innerHTML = `<div class="text-white text-center p-10">Cargando datos...</div>`;
+
+    try {
+        const poke = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r => r.json());
+        const species = await fetch(poke.species.url).then(r => r.json());
+
+        // Clasificación de movimientos
         const movesByMethod = { 'level-up': [], 'machine': [], 'egg': [] };
         poke.moves.forEach(m => {
             const method = m.version_group_details[0].move_learn_method.name;
             if (movesByMethod[method]) movesByMethod[method].push(m.move);
         });
 
-        // URL del modelo 3D animado
-        const img3D = `https://play.pokemonshowdown.com/sprites/ani/${poke.name.toLowerCase()}.gif`;
-        const imgFallback = poke.sprites.other['official-artwork'].front_default;
+        const color = TYPE_COLORS[poke.types[0].type.name];
+        // Modelo animado (GIF de Showdown)
+        const animated = `https://play.pokemonshowdown.com/sprites/ani/${poke.name.toLowerCase()}.gif`;
 
         modalContent.innerHTML = `
             <div class="flex flex-col md:flex-row bg-slate-950 rounded-3xl overflow-hidden border border-slate-800">
-                <!-- Visual del Pokémon -->
-                <div class="md:w-1/3 p-8 flex flex-col items-center bg-slate-900">
-                    <img src="${img3D}" class="model-3d w-40 h-40 object-contain" onerror="this.src='${imgFallback}'">
-                    <h2 class="text-3xl font-bold text-white mt-4 uppercase">${poke.name}</h2>
+                <div class="md:w-1/3 p-8 flex flex-col items-center" style="background: ${color}33">
+                    <button id="close-modal" class="absolute top-4 left-4 text-white">✕ Cerrar</button>
+                    <img src="${animated}" class="w-40 h-40 mt-10" onerror="this.src='${poke.sprites.other['home'].front_default}'">
+                    <h2 class="text-3xl font-black text-white mt-4 uppercase">${poke.name}</h2>
                     <div class="flex gap-2 mt-2">
-                        ${poke.types.map(t => `<span class="px-3 py-1 rounded-full text-[10px] text-white font-bold uppercase" style="background:${TYPE_COLORS[t.type.name]}">${t.type.name}</span>`).join('')}
+                        ${poke.types.map(t => `<span class="px-2 py-1 rounded text-[10px] text-white" style="background:${TYPE_COLORS[t.type.name]}">${t.type.name.toUpperCase()}</span>`).join('')}
                     </div>
                 </div>
-
-                <!-- Info y Movimientos (MT, Huevo, Nivel) -->
-                <div class="md:w-2/3 p-6 overflow-y-auto max-h-[80vh] custom-scrollbar">
-                    ${renderMoveGroup('Subiendo de Nivel', movesByMethod['level-up'], 'text-green-400')}
-                    ${renderMoveGroup('MT / Máquinas Técnicas', movesByMethod['machine'], 'text-blue-400')}
-                    ${renderMoveGroup('Crianza / Mov. Huevo', movesByMethod['egg'], 'text-purple-400')}
+                <div class="md:w-2/3 p-6 overflow-y-auto max-h-[70vh] bg-slate-900 text-slate-300">
+                    <h4 class="text-blue-400 font-bold mb-4 uppercase">Movimientos por MT / Crianza</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        ${movesByMethod['machine'].slice(0, 10).map(m => `<div class="bg-slate-800 p-2 rounded text-xs capitalize">${m.name.replace(/-/g, ' ')} (MT)</div>`).join('')}
+                        ${movesByMethod['egg'].slice(0, 10).map(m => `<div class="bg-slate-800 p-2 rounded text-xs capitalize text-purple-400">${m.name.replace(/-/g, ' ')} (Huevo)</div>`).join('')}
+                    </div>
                 </div>
             </div>
         `;
-    } catch (e) { console.error("Error en Pokedex:", e); }
+        document.getElementById('close-modal').onclick = () => modal.classList.add('hidden');
+    } catch (e) { console.error(e); }
 }
 
-function renderMoveGroup(title, moves, colorClass) {
-    if (moves.length === 0) return '';
-    return `
-        <div class="mb-6">
-            <h4 class="text-xs font-bold ${colorClass} uppercase mb-3 border-b border-slate-800 pb-1">${title}</h4>
-            <div class="grid grid-cols-2 gap-2">
-                ${moves.slice(0, 8).map(m => `
-                    <div class="bg-slate-800/50 p-2 rounded border border-slate-700 text-[11px] text-slate-300 capitalize">
-                        ${m.name.replace(/-/g, ' ')}
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
+// --- OBSERVADOR (INFINITE SCROLL) ---
+const observer = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting && !isSearching) fetchPokemons();
+}, { rootMargin: '200px' });
 
-function renderMoveSection(title, moves, colorClass) {
-    if (moves.length === 0) return '';
-    return `
-        <div>
-            <h5 class="text-[10px] font-bold ${colorClass} uppercase mb-2 ml-1">${title}</h5>
-            <div class="grid grid-cols-2 gap-2">
-                ${moves.slice(0, 10).map(m => `
-                    <div class="bg-slate-800/40 p-2 rounded-lg border border-slate-800 flex justify-between items-center group hover:border-slate-600 transition shadow-sm">
-                        <span class="text-xs text-slate-200 capitalize">${m.name.replace('-', ' ')}</span>
-                        <span class="text-[8px] text-slate-500 font-mono italic">INFO</span>
-                    </div>
-                `).join('')}
-            </div>
-        </div>
-    `;
-}
+observer.observe(sentinel);
 
-// Globalizar para el HTML
+// Hacer global para el HTML
 window.showDetails = showDetails;
+
+// Arrancar la app
+startApp();
