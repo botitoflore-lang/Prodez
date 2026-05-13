@@ -3,42 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pokédex Pro | Cross Edition</title>
+    <title>Pokédex Definitiva</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="src/css/styles.css">
+    <style>
+        body { background-color: #020617; color: white; margin: 0; font-family: system-ui, sans-serif; }
+        
+        /* Efecto de levitación para el modelo 3D */
+        .model-3d {
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+
+        /* Scrollbar personalizada para que se vea elegante */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+
+        /* Evita que los textos largos rompan las tarjetas de movimientos */
+        .truncate-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans">
-    
-    <!-- Header Sofisticado -->
-    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 shadow-2xl">
-        <div class="max-w-6xl mx-auto flex flex-col md:flex-row gap-6 items-center">
-            <h1 class="text-2xl font-black tracking-tighter text-red-500 italic">POKÉDEX_PRO</h1>
-            <div class="relative w-full">
-                <input type="text" id="search-input" 
-                       placeholder="Busca por nombre o ID (ej: Jolteon o 135)..." 
-                       class="w-full p-3 pl-10 rounded-xl bg-slate-800 border border-slate-700 focus:ring-2 focus:ring-red-600 outline-none transition-all placeholder:text-slate-500">
-                <span class="absolute left-3 top-3.5 opacity-30">🔍</span>
-            </div>
-        </div>
-    </header>
+<body class="p-6">
 
-    <!-- Contenedor Principal -->
-    <main id="pokemon-container" class="max-w-7xl mx-auto p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        <!-- Las tarjetas se generan dinámicamente -->
-    </main>
-
-    <!-- Indicador de Carga / Infinite Scroll -->
-    <div id="sentinel" class="h-32 flex justify-center items-center">
-        <div class="animate-bounce text-red-500 font-bold tracking-widest">CARGANDO MÁS POKÉMON...</div>
+    <div class="max-w-6xl mx-auto">
+        <input type="text" id="search-input" placeholder="Buscar Pokémon por nombre o ID..." 
+               class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 mb-8 text-white focus:outline-none focus:border-red-500 transition-colors">
+        
+        <main id="pokemon-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></main>
+        
+        <!-- Detector de Scroll para cargar más -->
+        <div id="sentinel" class="h-20 flex items-center justify-center text-slate-500 mt-4">Cargando...</div>
     </div>
 
     <!-- Modal de Detalles -->
-    <div id="detail-modal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-950/95 flex items-center justify-center p-4 sm:p-6">
-        <div id="modal-content" class="bg-slate-900 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl border border-slate-800 relative">
-            <!-- Se llena mediante JS -->
+    <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+        <div id="modal-content" class="w-full max-w-5xl h-[90vh] flex flex-col justify-center">
+            <!-- El contenido se inyecta por JS -->
         </div>
     </div>
 
-    <script type="module" src="src/app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
