@@ -1,106 +1,121 @@
-:root { 
-    --type-color: #4b5563; 
-    --accent-red: #ef4444;
-    --dark-bg: #0f172a;
-    --card-bg: #1e293b;
+/* styles.css */
+:root {
+    --bg-color: #1a1a1a;
+    --card-bg: #2d2d2d;
+    --text-main: #f0f0f0;
+    --accent: #ff4747;
 }
 
-/* --- Contenedor de Cartas --- */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    margin: 0;
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.filters input, .filters select {
+    padding: 10px;
+    margin: 5px;
+    border-radius: 8px;
+    border: none;
+    font-size: 1rem;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 20px;
+}
+
 .pokemon-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    perspective: 1000px;
-    border: 1px solid transparent;
+    background-color: var(--card-bg);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .pokemon-card:hover {
-    transform: translateY(-8px) scale(1.02);
-    border-color: var(--accent-red);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    background-color: #111827;
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(255, 71, 71, 0.3);
 }
 
-/* --- Scrollbar Estilo Gaming --- */
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: var(--dark-bg); }
-.custom-scrollbar::-webkit-scrollbar-thumb { 
-    background: var(--accent-red); 
-    border-radius: 5px;
-    box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+.pokemon-card img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
 }
 
-/* --- Animación de Entrada de Imágenes --- */
-img { 
-    transition: opacity 0.4s ease, transform 0.4s ease; 
-    opacity: 0; 
-}
-img.loaded { 
-    opacity: 1; 
-}
-
-/* --- Estética de Tipos --- */
-.type-pill {
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+/* Modal y Tooltips */
+.modal {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 }
 
-/* --- Tooltip Optimizado --- */
-[data-tooltip] { 
-    position: relative; 
-    cursor: help; 
+.modal.hidden {
+    display: none;
 }
 
-[data-tooltip]::before {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 125%; 
-    left: 50%; 
-    transform: translateX(-50%) translateY(10px);
-    opacity: 0;
-    pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.modal-content {
     background: var(--card-bg);
-    color: white;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 11px;
-    width: 180px;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px; right: 20px;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Sistema de Tooltips para Habilidades */
+.ability-badge {
+    position: relative;
+    display: inline-block;
+    padding: 5px 10px;
+    background: var(--accent);
+    border-radius: 5px;
+    margin: 5px;
+    cursor: help;
+}
+
+.ability-badge .tooltip-text {
+    visibility: hidden;
+    width: 250px;
+    background-color: #555;
+    color: #fff;
     text-align: center;
-    z-index: 100;
-    border: 1px solid var(--accent-red);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.6);
-}
-
-[data-tooltip]:hover::before {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-}
-
-/* --- Modelo 3D con Efecto de Flotación --- */
-.model-3d {
-    filter: drop-shadow(0 0 15px rgba(255,255,255,0.15));
-    animation: floatAnim 3.5s ease-in-out infinite;
-    will-change: transform;
-}
-
-@keyframes floatAnim {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-12px) rotate(2deg); }
-}
-
-/* --- Cajas de Movimientos (Grilla Limpia) --- */
-.move-card {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 6px 10px;
-    background: rgba(30, 41, 59, 0.5);
-    border: 1px solid rgba(239, 68, 68, 0.1);
     border-radius: 6px;
-    transition: border-color 0.2s;
+    padding: 10px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; 
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.85rem;
 }
 
-.move-card:hover {
-    border-color: var(--accent-red);
+.ability-badge:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
 }
