@@ -4,52 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokédex Definitiva</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-color: #020617; color: white; margin: 0; font-family: system-ui, sans-serif; }
-        
-        /* Efecto de levitación para el modelo 3D */
-        .model-3d {
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-12px); }
-        }
-
-        /* Scrollbar personalizada para que se vea elegante */
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #0f172a; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-
-        /* Evita que los textos largos rompan las tarjetas de movimientos */
-        .truncate-text {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="p-6">
+<body>
+    <header>
+        <h1>Pokédex</h1>
+        <div class="filters">
+            <input type="text" id="search-bar" placeholder="Buscar Pokémon (Ej: Vaporeon)...">
+            <select id="region-filter">
+                <option value="all">Todas las Regiones</option>
+                <option value="kanto">Kanto</option>
+                <option value="johto">Johto</option>
+                <option value="hoenn">Hoenn</option>
+                <!-- Añadir el resto de regiones -->
+            </select>
+        </div>
+    </header>
 
-    <div class="max-w-6xl mx-auto">
-        <input type="text" id="search-input" placeholder="Buscar Pokémon por nombre o ID..." 
-               class="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 mb-8 text-white focus:outline-none focus:border-red-500 transition-colors">
-        
-        <main id="pokemon-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></main>
-        
-        <!-- Detector de Scroll para cargar más -->
-        <div id="sentinel" class="h-20 flex items-center justify-center text-slate-500 mt-4">Cargando...</div>
-    </div>
+    <main>
+        <!-- Aquí se inyectarán las tarjetas de previsualización -->
+        <div id="pokedex-grid" class="grid-container"></div>
+    </main>
 
-    <!-- Modal de Detalles -->
-    <div id="detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
-        <div id="modal-content" class="w-full max-w-5xl h-[90vh] flex flex-col justify-center">
-            <!-- El contenido se inyecta por JS -->
+    <!-- Modal para la información detallada -->
+    <div id="pokemon-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <div id="modal-header">
+                <h2 id="modal-name">Nombre</h2>
+                <img id="modal-model-3d" src="" alt="Modelo 3D" />
+            </div>
+            
+            <div class="info-sections">
+                <section class="types-weaknesses">
+                    <h3>Tipos y Eficacia</h3>
+                    <p><strong>Tipos:</strong> <span id="modal-types"></span></p>
+                    <p><strong>Debilidades:</strong> <span id="modal-weaknesses"></span></p>
+                    <p><strong>Fortalezas:</strong> <span id="modal-strengths"></span></p>
+                </section>
+
+                <section class="abilities">
+                    <h3>Habilidades</h3>
+                    <div id="modal-abilities">
+                        <!-- Las habilidades con tooltip se generarán aquí -->
+                    </div>
+                </section>
+
+                <section class="moves">
+                    <h3>Ataques</h3>
+                    <div class="move-tabs">
+                        <button class="tab-btn active" onclick="showMoves('level')">Nivel</button>
+                        <button class="tab-btn" onclick="showMoves('tm')">MT</button>
+                        <button class="tab-btn" onclick="showMoves('egg')">Crianza</button>
+                    </div>
+                    <ul id="modal-moves-list"></ul>
+                </section>
+            </div>
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
